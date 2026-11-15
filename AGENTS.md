@@ -1,12 +1,13 @@
 # Repository agent instructions
 
-## Start every implementation task in isolation
+## Adopt the task's isolated worktree
 
-Before issue exploration, planning, or project-file edits, perform only essential Git preflight: inspect status, branch, worktrees and remotes; preserve all existing changes; fetch the latest `origin/main`.
+Each task runs in a separate Codex TUI session started with `codex --worktree`. Adopt that session's current isolated worktree; do not create another worktree, nested checkout, wrapper or launcher.
 
-1. Reuse an existing isolated worktree only when it belongs to this issue and its base is verified. Otherwise create a unique issue-named feature branch and separate worktree from `origin/main`, preferring native Codex tools when available. Never develop in the shared main checkout or create duplicate/nested worktrees.
-2. Select the worktree execution directory and verify its absolute top-level path, issue branch, base and clean initial state before further work. Use that directory explicitly on every shell command and absolute paths for file tools. A shell `cd` does not persist across calls or change the session sandbox root.
-3. If safe execution or filesystem permissions cannot be established, stop and report. Use the native Codex handoff in [the worktree procedure](docs/engineering/workflow.md); no launcher, wrapper, alias or extra routine per-ticket command is required.
+Before issue exploration, planning or project-file edits:
+1. Perform essential Git preflight: verify the absolute worktree root, linked-worktree state, branch/detached HEAD, status and remotes. Preserve all existing work. If this is the shared checkout or isolation/permissions cannot be verified, stop and report; start the task in the required native session instead.
+2. Fetch the latest `origin/main`. For a fresh, clean task worktree, create a unique issue-named feature branch from that fetched ref in the current worktree, then verify branch name and `HEAD` equal to `origin/main` before edits. Native worktrees may start detached or at a stale base; isolation alone does not establish the correct branch/base. Stop if switching would displace existing work. Follow the checks in [the worktree procedure](docs/engineering/workflow.md).
+3. When continuing this issue's existing branch/PR, reuse its worktree and branch after verifying ownership and the recorded base; preserve its commits rather than resetting/rebasing onto newer main. Keep every shell command's `workdir` and file-tool absolute paths inside the adopted worktree. A shell `cd` does not persist across calls or change sandbox permissions.
 
 ## Autonomy and approval
 

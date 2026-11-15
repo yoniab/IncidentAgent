@@ -1,30 +1,45 @@
 # Engineering workflow
 
-## Worktree start (agent-operated PowerShell)
+## Adopt the native session worktree
 
-Open Codex normally and request an issue. The agent performs this procedure; no custom launcher or routine human setup command is needed. Substitute a unique issue branch and a sibling directory; stop on any failed command or unexpected state. If that directory or Git metadata is outside the writable roots, obtain a narrowly scoped permission grant through the environment or use the native handoff below; the isolation requirement does not authorize bypassing permissions.
+Start each task in a separate Codex TUI session using `codex --worktree`. The agent adopts the current linked worktree provisioned by that session. No second worktree, custom launcher, wrapper or alias is needed. For this existing PR, continue in its verified YON-7 worktree/branch; do not recreate or move it just to update instructions.
+
+Before reading/planning the issue beyond essential identification or editing project files, perform Git preflight in the current session directory. Inspect every result and stop on any failed command or unexpected state:
 
 ```powershell
-git status --short
+git rev-parse --show-toplevel
+git rev-parse --git-dir
+git rev-parse --git-common-dir
+git rev-parse --show-superproject-working-tree
 git branch --show-current
+git status --porcelain=v1 --untracked-files=all
 git worktree list
 git remote -v
 git fetch origin main
-# Reuse an existing valid task worktree rather than duplicating it.
-git worktree add -b feat/YON-8-topic C:/repos/IncidentAgent-worktrees/YON-8-topic origin/main
 ```
 
-Preserve any existing work, even in a dirty source checkout; never transfer/reset it. In the selected worktree, verify `git rev-parse --show-toplevel`, `git branch --show-current`, `git status --short`, and `git rev-parse HEAD origin/main`. At creation both SHAs must match. For resumed task work, verify the known task base remains an ancestor; do not reset the branch to a newer main. Keep shell `workdir` and file-tool absolute paths inside this worktree throughout. Do not run project edits in the source checkout.
+Confirm the absolute root is the session's task worktree, the Git directory differs from the common Git directory, and this is a linked worktree rather than a submodule or the shared checkout. Verify the intended origin remote. If isolation or permissions are missing, stop and report; start the task in its own `codex --worktree` session rather than creating another worktree from inside it. Native session isolation does not authorize permission bypasses.
 
-### Codex CLI/TUI limitation and native fallback
+### Establish the issue branch before edits
 
-On Windows, Codex CLI 0.169.0 exposes `--worktree` and `-C/--cd`. Native managed worktrees start detached; create the issue-named branch before edits. Prefer the native worktree tool if exposed, otherwise use the Git procedure above.
+For a fresh task, require a clean worktree, including untracked files. A native worktree may start detached at an older commit. Verify that its HEAD is an ancestor of freshly fetched main before switching, so unique detached work is not abandoned:
 
-Creating a worktree does not move an already-running session's cwd or grant filesystem access. In the YON-7 run, explicit shell `workdir` successfully selected the new worktree and preserved its branch, but the sandbox root stayed at the shared checkout and its execution helper failed before launch. Separately approved commands outside the sandbox worked in that run; this is historical evidence, not a recommended workaround or continuing permission grant. Follow the sandbox-first permission rule in AGENTS.md for every command. This verifies command execution in the worktree, not an automatic persistent TUI cwd/sandbox transition.
+```powershell
+git merge-base --is-ancestor HEAD origin/main
+# Continue only on exit code 0 and with no existing task work to preserve.
+git switch --no-track -c feat/YON-8-topic origin/main
+git branch --show-current
+git rev-parse HEAD origin/main
+git status --porcelain=v1 --untracked-files=all
+```
 
-If the current session cannot safely target the worktree, stop before edits. The least-friction native fallback is the TUI's `/worktree` selection when supported, then verify its directory/base and name its branch. Alternatively restart Codex using `codex -C <existing-task-worktree>`; do not also pass `--worktree` for an existing task checkout. For a new managed session, `codex --worktree` creates isolation, but its base must still be verified against freshly fetched main and its detached HEAD named before editing. If native facilities cannot select the intended latest-main base safely, use the Git-created worktree and `-C`. No permissions bypass flags are part of this procedure.
+Substitute a unique branch for the requested Linear issue. Both SHAs must match, the branch must be the intended issue branch, and status must remain clean before the first project edit. Record the path, branch and base SHA. If there are changes, unique commits, another task's branch, an existing branch-name collision or uncertain ownership, stop and report rather than resetting, discarding, force-creating a branch or switching away from work. Do not create a second worktree to work around the problem.
 
-After this policy lands, validate a fresh issue/demo: start Codex normally, request an issue, and record the initial/source status, fetch/base SHA, distinct task path and branch, and verification before the first edit. YON-7's current-session worktree check does not substitute for that fresh-session demo. Keep YON-6 unstarted until YON-7 is completed by the human.
+For a resumed issue/PR, reuse its verified worktree and issue branch. Verify the recorded task base is an ancestor of HEAD, inspect existing changes, and preserve all task/user commits. Fetching newer main does not authorize resetting or rebasing an in-progress branch, and HEAD need not equal today's origin/main. Continue only when existing work and task ownership are understood.
+
+Keep shell `workdir` and file-tool absolute paths inside the adopted worktree throughout. Creating or selecting a Git worktree does not itself change an already-running session's cwd or sandbox grants. Follow the sandbox-first permission rule in AGENTS.md; obtain narrowly scoped permission if indispensable, or report the blocker. No automatic sandbox escape or permissions-bypass flags are part of this workflow.
+
+After this policy lands, validate a fresh-session issue/demo: start with `codex --worktree`, request an issue, and record the provisioned path, initial Git state, fetched main SHA, issue branch and equal base SHAs before the first edit. Confirm no additional worktree was created. The existing YON-7 worktree check is historical evidence and does not substitute for that fresh-session demo. Keep YON-6 unstarted until YON-7 is completed by the human.
 
 ## CI and main protection
 
