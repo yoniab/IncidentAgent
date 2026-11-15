@@ -1,8 +1,11 @@
 {
   "name": "incident-agent",
-  "private": false,
+  "private": true,
   "type": "module",
   "packageManager": "pnpm@10.26.0",
+  "engines": {
+    "node": ">=26"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck:test": "tsc -p tsconfig.test.json --noEmit",

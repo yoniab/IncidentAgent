@@ -1,6 +1,6 @@
 # Incident Agent V1 implementation roadmap
 
-Status: Milestone 1 and its technology stack are approved; [ADR 011](../architecture/decisions/011-request-timestamp-parsing.md) replaces the original strict timestamp contract with lenient Day.js UTC parsing. Only Task 1 (YON-5) and its review refactor are currently authorized. Task 2 (YON-6), later milestone sequencing, and unresolved implementation choices remain deferred or proposed. This roadmap does not independently authorize implementation.
+Status: Milestone 1 uses Node.js 26 native Temporal under [ADR 012](../architecture/decisions/012-native-temporal-request-timestamps.md), superseding ADR 011. Only Task 1 (YON-5) and its final simplification are authorized. Task 2 (YON-6), later milestones, and unresolved implementation choices remain deferred or proposed. This roadmap does not independently authorize implementation.
 
 ## Authority and scope
 
@@ -12,11 +12,11 @@ The [first milestone plan](v1-milestone-01-request-boundary-plan.md) specifies o
 
 ### 1. Canonical investigation request boundary
 
-- **Objective and deliverables:** A minimal Node.js 26 LTS/strict TypeScript test harness using pnpm, native ESM, `tsc`, and Vitest; separate readonly request types and pure request validation/normalization using Day.js with its UTC plugin. Interpret timezone-free timestamps as UTC, preserve explicit offsets, and establish a positive half-open `[start, end)` interval. A separately authorized CLI-facing resolver will apply the approved `local` default. No executable investigation CLI or telemetry integration yet.
+- **Objective and deliverables:** Node.js 26 native Temporal with strict TypeScript, pnpm, native ESM, `tsc`, and Vitest; separate request types/error and pure validation using `Temporal.Instant`. Require timezone-qualified ISO input, normalize to UTC, and establish positive `[start, end)` intervals. A separately authorized CLI resolver will apply the `local` default. No executable CLI or telemetry integration yet.
 - **Dependencies:** [ADR 008](../architecture/decisions/008-service-identity-and-time.md), [ADR 009](../architecture/decisions/009-application-stack.md), and the synthetic-only boundary in [ADR 003](../architecture/decisions/003-data-security-boundary.md). No running observability stack or API key.
-- **Acceptance criteria:** Accept Day.js-parseable timestamps, including lenient calendar normalization; timezone-free inputs mean UTC, explicit offsets are respected, and output is canonical ISO UTC with millisecond precision. Unparseable dates, nonpositive intervals, and blank service/environment values produce field-specific errors. Independent processes with different machine timezones return identical normalized instants. Day.js is the only runtime dependency; no custom date parser, strict RFC 3339 gate, CLI, network, or model dependency is added. The omitted CLI environment default belongs to deferred YON-6.
+- **Acceptance criteria:** Verify runtime and TypeScript Temporal support before implementation. `Temporal.Instant.from` accepts ISO instants with explicit `Z`/numeric offsets; reject missing timezones, invalid timestamps, and nonpositive native comparisons. Output is canonical UTC with native precision up to nanoseconds. Preserve identity/types/field errors. Verify valid and invalid requests under UTC, New York, and Tokyo. Remove Day.js without adding dependencies, polyfills, or custom parsing. CLI environment resolution remains deferred to YON-6.
 - **Verification:** `pnpm run build`, `pnpm run typecheck:test`, and `pnpm test` run locally; Vitest discovery lists the planned test files. No Docker services, telemetry, or secret are needed. Inspect that only the intended source/test/tooling files appear.
-- **Key risks and unresolved decisions:** Day.js UTC parsing is verified across machine timezones for ISO-like forms; other accepted strings can use native fallback parsing and retain machine-timezone dependence. Broader-format UTC handling remains an open review decision in ADR 011. Numeric maximum window belongs with coordinator bounds later. This slice proves request semantics but not telemetry availability.
+- **Key risks and unresolved decisions:** Native Temporal is required; syntax/range/precision and leap-second/annotation semantics follow ADR 012. Fixed millisecond formatting is no longer guaranteed. Numeric maximum window remains a later coordinator concern. This slice proves request semantics, not telemetry availability.
 
 ### 2. Local synthetic telemetry slice
 
@@ -90,7 +90,7 @@ This is an application-first start only in the narrow sense that the request bou
 
 - **First slice:** Canonical Investigation Request Boundary is approved as the first implementation milestone.
 - **Toolchain:** Node.js 26 LTS, strict TypeScript, pnpm with `pnpm-lock.yaml`, native ESM using NodeNext module resolution, `tsc` without bundling, and Vitest. No Vite application build or development server. A test-only Vitest dependency does not add a Vite application path. See [TypeScript's NodeNext guidance](https://www.typescriptlang.org/docs/handbook/modules/reference) and [Vitest's test-file discovery guide](https://vitest.dev/guide/learn/writing-tests).
-- **Time input:** [ADR 011](../architecture/decisions/011-request-timestamp-parsing.md) supersedes the previously approved strict RFC 3339 input policy. Use Day.js with its UTC plugin, accept parseable inputs and lenient calendar normalization, interpret timezone-free inputs as UTC, respect explicit offsets, reject unparseable inputs, and require a positive half-open `[start, end)` interval. Output uses millisecond-precision ISO UTC strings. CLI spelling remains deferred. [ADR 008](../architecture/decisions/008-service-identity-and-time.md) is preserved as the historical identity/time decision.
+- **Time input:** [ADR 012](../architecture/decisions/012-native-temporal-request-timestamps.md) supersedes the Day.js decisions. Use native `Temporal.Instant` for explicit-timezone ISO input, comparison, and canonical UTC output up to nanosecond precision. Missing timezones and invalid/nonpositive intervals are rejected. Historical ADRs 008 and 011 are preserved; CLI spelling remains deferred.
 
 ### Remaining before milestone 1 execution
 

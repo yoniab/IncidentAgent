@@ -1,17 +1,18 @@
 # 011 — Request timestamp parsing
 
-Status: Accepted by the YON-5 code-review refactor approval.
+Status: Superseded by [ADR 012 — Native Temporal request timestamps](012-native-temporal-request-timestamps.md). The historical Day.js decision below is retained unchanged.
 
 ## Context
 
-The initial milestone plan required strict RFC 3339 timestamps with explicit timezones and rejected impossible calendar dates. Its first implementation duplicated date parsing, leap-year rules, and calendar validation in application code. The approved YON-5 review replaces that policy with lenient Day.js parsing and UTC normalization.
+The initial milestone required strict RFC 3339 input. A subsequent lenient Day.js policy normalized impossible dates and needed application regexes to select formats. The approved simplification now requires small Day.js format lists, UTC interpretation, and rejection of impossible dates. This supersedes the earlier lenient policy.
 
 This decision supersedes the strict timestamp input contract in the original milestone plan and roadmap. [ADR 008](008-service-identity-and-time.md) remains the historical service/time decision: explicit service and environment identity, UTC internal instants, and half-open intervals are retained. ADR 008 itself is preserved unchanged.
 
 ## Decision
 
-- Use Day.js with its UTC plugin as the request timestamp parser. Do not maintain application regexes, calendar calculations, a format allowlist, or strict RFC 3339 validation.
-- Accept timestamps that Day.js can parse and normalize. Lenient normalization, including overflowing calendar dates, is deliberate.
+- Use Day.js with its bundled UTC and CustomParseFormat plugins. Strict Day.js parsing validates the calendar and clock; do not maintain format-selection regexes, leap-year rules, or month-length calculations. Never use native string-date fallback.
+- Support `YYYY-MM-DD`; ISO-like date-times with `T` or a space separator and `HH:mm`, `HH:mm:ss`, or `HH:mm:ss.SSS`; and English `MMMM D, YYYY` / `MMM D, YYYY`, optionally followed by ` HH:mm:ss` (for example, `November 4, 2026 12:00:00` or `Nov 4, 2026`). One-to-three fractional digits are supported. An attached `Z` or signed `HH:mm` offset is optional. English names use standard capitalization.
+- Reject impossible dates such as `2026-02-30`, clock overflow, ambiguous numeric-only values, unsupported forms, surrounding whitespace, and trailing text. This supersedes the earlier lenient calendar-normalization policy.
 - Interpret timezone-free timestamps as UTC. Respect explicit offsets and normalize the resulting instants to UTC.
 - Reject unparseable start/end values with the corresponding `InvestigationRequestError` field. Reject equal or reversed normalized instants with field `window`.
 - Retain canonical ISO UTC output strings with millisecond precision and positive `[start, end)` semantics. Preserve nonblank service/environment identity unchanged.
@@ -19,14 +20,20 @@ This decision supersedes the strict timestamp input contract in the original mil
 
 ## Rationale
 
-Delegating parsing to one established library removes duplicate date rules and makes the accepted input policy simpler to maintain. UTC interpretation avoids changing an investigation's interval with the engineer's machine timezone. Strict formatting is unnecessary for the local request boundary; consistent normalized instants and positive intervals remain the invariants that later telemetry modules consume.
+Delegating strict validation to Day.js removes duplicate date rules and prevents a typo from silently changing the investigation interval. UTC interpretation avoids changing that interval with the engineer's machine timezone. A readable list of common formats keeps acceptance explicit without requiring RFC 3339 spelling everywhere.
 
 ## Trade-offs
 
-Leniency can normalize an input typo rather than reject it; for example, `2026-02-29T12:00:00` becomes `2026-03-01T12:00:00.000Z`. Accepted spellings and parsing limits follow the pinned Day.js version rather than an application-owned grammar. Millisecond precision remains; leap-second support and arbitrary submillisecond precision are not added.
+The pinned Day.js 1.11.23 release has three relevant limitations verified during implementation:
 
-The adapter calls `dayjs.utc(value)` directly. Day.js documents ISO-like strings (including a space separator) for its standard string parser; some other formats fall back to native parsing. In the pinned version, `November 4, 2026 12:00:00` can consequently depend on the machine timezone even in UTC mode. The implementation therefore does not yet guarantee UTC interpretation for every non-ISO timezone-free spelling Day.js accepts. Whether to support those broader forms with an additional adapter policy is an open review decision; the application does not silently add a custom parser. See the [Day.js string parsing documentation](https://day.js.org/docs/en/parse/string) and [UTC documentation](https://day.js.org/docs/en/parse/utc).
+- Its UTC format-array overload recursively parses candidates in local time. Keep one array of supported formats, but try each individually with `dayjs.utc(value, format, true)` so every candidate uses UTC.
+- Strict numeric-offset parsing compares the UTC round-trip with the original offset spelling and rejects valid timestamps. Isolate suffix detection, validate wall time and offset (`HH:mm`) strictly with Day.js, then apply the offset using an explicit Day.js format. Only this already-validated conversion is non-strict. No application offset arithmetic is needed.
+- Strict `S`/`SS` parsing cannot round-trip those fractional tokens. Pad one/two fractional digits to `SSS` before strict parsing. Reject more than three digits instead of silently truncating.
+
+Strict CustomParseFormat rejects years `0000`–`0099` because of its underlying year handling; keep those inputs invalid instead of substituting the current year or 1900s. Leap seconds, timezone names/IANA zones, slash-separated numeric dates, and unlisted formats remain unsupported. English month names use Day.js's default English locale.
+
+The adapter uses no native parsing fallback. Every supported timezone-free spelling means UTC, and explicit offsets preserve their instant. See the [Day.js strict parsing and format-array documentation](https://day.js.org/docs/en/parse/string-format/) and [UTC documentation](https://day.js.org/docs/en/parse/utc).
 
 ## Verification and scope
 
-Tests cover explicit UTC, positive/negative offsets, timezone-free and date-only inputs, lenient normalization, invalid values, nonpositive intervals, blank identity, and independent processes with different `TZ` settings. Build and strict test typecheck must pass. This decision authorizes only the YON-5 request-boundary refactor and the Day.js dependency; YON-6 environment resolution, executable CLI behavior, telemetry, and model integration remain deferred.
+Tests cover every supported format in UTC, New York, and Tokyo subprocesses; impossible dates with and without offsets; ambiguous values and year-zero rejection; positive/negative minute offsets and offset day rollover; equal/reversed windows; a positive one-millisecond interval; and blank identity. Build, strict test typecheck, and the complete suite must pass. Types and errors remain in their own files. This decision authorizes only YON-5; no YON-6 implementation, unrelated dependency, integration, or commit is authorized.
