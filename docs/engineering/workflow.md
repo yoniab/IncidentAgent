@@ -2,7 +2,7 @@
 
 ## Worktree start (agent-operated PowerShell)
 
-Open Codex normally and request an issue. The agent performs this procedure; no custom launcher or routine human setup command is needed. Substitute a unique issue branch and a sibling directory; stop on any failed command or unexpected state.
+Open Codex normally and request an issue. The agent performs this procedure; no custom launcher or routine human setup command is needed. Substitute a unique issue branch and a sibling directory; stop on any failed command or unexpected state. If that directory or Git metadata is outside the writable roots, obtain a narrowly scoped permission grant through the environment or use the native handoff below; the isolation requirement does not authorize bypassing permissions.
 
 ```powershell
 git status --short
@@ -20,7 +20,7 @@ Preserve any existing work, even in a dirty source checkout; never transfer/rese
 
 On Windows, Codex CLI 0.169.0 exposes `--worktree` and `-C/--cd`. Native managed worktrees start detached; create the issue-named branch before edits. Prefer the native worktree tool if exposed, otherwise use the Git procedure above.
 
-Creating a worktree does not move an already-running session's cwd or grant filesystem access. In the YON-7 run, explicit shell `workdir` successfully selected the new worktree and preserved its branch, but the sandbox root stayed at the shared checkout and its execution helper failed before launch. Approved commands outside the sandbox worked. This verifies command execution in the worktree, not an automatic persistent TUI cwd/sandbox transition.
+Creating a worktree does not move an already-running session's cwd or grant filesystem access. In the YON-7 run, explicit shell `workdir` successfully selected the new worktree and preserved its branch, but the sandbox root stayed at the shared checkout and its execution helper failed before launch. Separately approved commands outside the sandbox worked in that run; this is historical evidence, not a recommended workaround or continuing permission grant. Follow the sandbox-first permission rule in AGENTS.md for every command. This verifies command execution in the worktree, not an automatic persistent TUI cwd/sandbox transition.
 
 If the current session cannot safely target the worktree, stop before edits. The least-friction native fallback is the TUI's `/worktree` selection when supported, then verify its directory/base and name its branch. Alternatively restart Codex using `codex -C <existing-task-worktree>`; do not also pass `--worktree` for an existing task checkout. For a new managed session, `codex --worktree` creates isolation, but its base must still be verified against freshly fetched main and its detached HEAD named before editing. If native facilities cannot select the intended latest-main base safely, use the Git-created worktree and `-C`. No permissions bypass flags are part of this procedure.
 

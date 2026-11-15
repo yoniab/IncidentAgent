@@ -27,9 +27,8 @@ Agent instructions guide conduct; they neither provision session isolation nor r
 
 ## Current documentation and Windows tools
 
-For library, framework, SDK, API, CLI or cloud-service questions and implementation that depends on their APIs, use Context7 outside the default sandbox, even for familiar technologies:
-1. Resolve with `npx ctx7@latest library <official-name> "<specific concept>"` unless given a `/org/project` ID.
-2. Select the best relevant official/high-reputation result; fetch with `npx ctx7@latest docs <id> "<specific concept>"`. Use returned version IDs when applicable and separate distinct concepts. Maximum three commands per question; include no credentials or sensitive data.
-3. Use the fetched documentation. On quota errors, report them and suggest `npx ctx7@latest login` or `CONTEXT7_API_KEY`; do not silently substitute memory. Rerun DNS/network failures outside the sandbox. General programming, API-independent refactoring and review do not require Context7.
+For library, framework, SDK, API, CLI or cloud-service work that depends on current APIs, verify against current official documentation. Prefer read-only documentation tools or official sites that do not download and execute packages. Use Context7 when available through an approved tool or an already approved, version-pinned CLI; resolve the library before fetching focused documentation. Do not run unpinned package runners such as `npx ctx7@latest`, install tooling, authenticate, or change credential configuration merely to satisfy a documentation lookup. New tooling needs separate human approval for its exact version, purpose and permissions; project dependencies also follow the dependency approval rule above. Keep queries free of credentials, private source code and sensitive data. If documentation cannot be accessed safely, report the limitation rather than silently relying on memory.
+
+Run shell commands in the sandbox by default. A sandbox denial, DNS/network failure or tooling error does not authorize execution outside it. Use a permitted alternative or report the blocker; if broader access is indispensable, request narrowly scoped approval through the environment's permission flow and wait for its decision. Approval for one command is not blanket permission for future execution. Never automatically retry outside the sandbox or use permission-bypass flags.
 
 Use `gh` normally. If unavailable on this Windows machine, try `C:\Program Files\GitHub CLI\gh.exe` before reporting it unavailable.
