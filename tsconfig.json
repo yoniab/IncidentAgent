@@ -6,6 +6,7 @@
     "noEmit": true,
     "allowImportingTsExtensions": true,
     "target": "ES2022",
+    "lib": ["ES2022", "ESNext.Temporal"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "types": ["node"]
